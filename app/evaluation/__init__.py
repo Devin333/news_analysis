@@ -1,0 +1,61 @@
+"""Evaluation module for system quality assessment."""
+
+from app.evaluation.metrics import (
+    MetricCategory,
+    MetricResult,
+    analyst_value_quality,
+    average_latency,
+    board_classification_accuracy,
+    content_type_classification_accuracy,
+    historian_consistency,
+    pipeline_success_rate,
+    reviewer_catch_rate,
+    topic_merge_f1,
+    topic_merge_precision,
+    topic_merge_recall,
+    trend_detection_precision,
+    trend_detection_recall,
+    writer_faithfulness,
+)
+from app.evaluation.schemas import (
+    DatasetDTO,
+    DatasetSampleDTO,
+    EvaluationConfigDTO,
+    EvaluationReportDTO,
+    EvaluationRunDTO,
+    EvaluationStatus,
+    EvaluationSummaryDTO,
+    EvaluationThresholdsDTO,
+    EvaluationType,
+    MetricResultDTO,
+)
+
+__all__ = [
+    # Metrics
+    "MetricCategory",
+    "MetricResult",
+    "board_classification_accuracy",
+    "content_type_classification_accuracy",
+    "topic_merge_precision",
+    "topic_merge_recall",
+    "topic_merge_f1",
+    "historian_consistency",
+    "analyst_value_quality",
+    "writer_faithfulness",
+    "reviewer_catch_rate",
+    "trend_detection_precision",
+    "trend_detection_recall",
+    "pipeline_success_rate",
+    "average_latency",
+    # Schemas
+    "EvaluationType",
+    "EvaluationStatus",
+    "MetricResultDTO",
+    "EvaluationRunDTO",
+    "EvaluationConfigDTO",
+    "EvaluationSummaryDTO",
+    "DatasetSampleDTO",
+    "DatasetDTO",
+    "EvaluationThresholdsDTO",
+    "EvaluationReportDTO",
+]

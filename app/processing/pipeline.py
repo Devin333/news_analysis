@@ -162,7 +162,16 @@ class ProcessingPipeline:
         """Parse a single raw item with appropriate parser."""
         # Determine best parser based on content
         if raw_item.raw_json:
-            # JSON content - use JSON parser
+            # If raw_json contains a "title" key it likely came from an RSS
+            # collector that preserved entry metadata.  Use the dedicated
+            # RSSParser so the title / author / tags are extracted properly.
+            if "title" in raw_item.raw_json:
+                rss_parser = RSSParser()
+                result = rss_parser.parse(raw_item)
+                if result.success:
+                    return result
+
+            # Other JSON content - use JSON parser (e.g. GitHub / arXiv)
             parser = self._parser_registry.get(ContentType.REPOSITORY)
             if parser and parser.can_parse(raw_item):
                 return parser.parse(raw_item)
@@ -171,7 +180,12 @@ class ProcessingPipeline:
             # HTML content - use HTML parser
             parser = self._parser_registry.get(ContentType.ARTICLE)
             if parser and parser.can_parse(raw_item):
-                return parser.parse(raw_item)
+                result = parser.parse(raw_item)
+                # If HTML parser couldn't extract a title but raw_json has one,
+                # patch it in so downstream normalisation gets a usable title.
+                if result.success and not result.title and raw_item.raw_json:
+                    result.title = raw_item.raw_json.get("title", "")
+                return result
 
         # Fallback to default parser
         return self._parser_manager.parse_item(raw_item, content_type)

@@ -25,4 +25,5 @@ class NormalizedItemDTO(BaseModel):
     quality_score: float = 0.0
     ai_relevance_score: float = 0.0
     canonical_url: str | None = None
+    tags: list[str] = []
     metadata_json: dict[str, Any] = {}

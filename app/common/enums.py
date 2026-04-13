@@ -34,8 +34,12 @@ class ContentType(StrEnum):
     """Normalized content type."""
 
     ARTICLE = "article"
+    BLOG = "blog"
     PAPER = "paper"
     REPOSITORY = "repository"
+    RELEASE = "release"
+    CHANGELOG = "changelog"
+    DISCUSSION = "discussion"
     THREAD = "thread"
     VIDEO = "video"
     PODCAST = "podcast"

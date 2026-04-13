@@ -36,13 +36,24 @@ def _raw_collected_to_dto(
         parts.append(item.raw_html[:500])
     checksum = _compute_checksum("|".join(parts))
 
+    # Preserve collector metadata (title, author, etc.) in raw_json
+    # so the processing pipeline can use them even if the parser
+    # cannot extract them from raw_html/raw_text alone.
+    raw_json = item.raw_json or {}
+    if item.title:
+        raw_json.setdefault("title", item.title)
+    if item.author:
+        raw_json.setdefault("author", item.author)
+    if item.extra:
+        raw_json.setdefault("extra", item.extra)
+
     return RawItemDTO(
         source_id=source_id,
         external_id=item.external_id,
         url=item.url,
         canonical_url=item.canonical_url,
         raw_html=item.raw_html,
-        raw_json=item.raw_json,
+        raw_json=raw_json if raw_json else None,
         raw_text=item.raw_text,
         fetched_at=item.published_at or datetime.now(timezone.utc),
         checksum=checksum,

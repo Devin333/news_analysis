@@ -85,6 +85,16 @@ class NormalizedItemRepository:
         logger.info(f"Bulk created {len(created)} normalized items")
         return created
 
+    async def get_by_id(self, item_id: int) -> NormalizedItemDTO | None:
+        """Get normalized item by ID."""
+        result = await self._session.execute(
+            select(NormalizedItem).where(NormalizedItem.id == item_id)
+        )
+        item = result.scalar_one_or_none()
+        if item is None:
+            return None
+        return _to_dto(item)
+
     async def get_by_raw_item_id(self, raw_item_id: int) -> NormalizedItemDTO | None:
         """Get normalized item by raw item ID."""
         result = await self._session.execute(

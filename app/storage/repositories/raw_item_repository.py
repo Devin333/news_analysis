@@ -103,3 +103,25 @@ class RawItemRepository:
         )
         count = result.scalar_one()
         return count > 0
+
+    async def list_pending(self, *, limit: int = 200) -> list[RawItemDTO]:
+        """List raw items with parse_status='pending'."""
+        result = await self._session.execute(
+            select(RawItem)
+            .where(RawItem.parse_status == "pending")
+            .order_by(RawItem.fetched_at.asc())
+            .limit(limit)
+        )
+        items = result.scalars().all()
+        return [_to_dto(i) for i in items]
+
+    async def update_parse_status(self, item_id: int, status: str) -> bool:
+        """Update parse_status for a raw item."""
+        from sqlalchemy import update
+        result = await self._session.execute(
+            update(RawItem)
+            .where(RawItem.id == item_id)
+            .values(parse_status=status)
+        )
+        await self._session.flush()
+        return getattr(result, "rowcount", 0) > 0

@@ -1,0 +1,107 @@
+{
+  "name": "Board Classification Evaluation",
+  "version": "1.0",
+  "evaluation_type": "board_classification",
+  "metadata": {
+    "description": "Samples for board classification accuracy evaluation",
+    "created_at": "2024-01-01"
+  },
+  "samples": [
+    {
+      "id": "bc_001",
+      "input": {
+        "title": "OpenAI releases GPT-5 with improved reasoning",
+        "summary": "OpenAI announced GPT-5 today with significant improvements in reasoning capabilities.",
+        "source": "techcrunch.com"
+      },
+      "expected": {
+        "board_type": "tech"
+      },
+      "tags": ["ai", "llm"]
+    },
+    {
+      "id": "bc_002",
+      "input": {
+        "title": "Federal Reserve raises interest rates by 0.25%",
+        "summary": "The Fed announced a quarter-point rate hike amid inflation concerns.",
+        "source": "reuters.com"
+      },
+      "expected": {
+        "board_type": "news"
+      },
+      "tags": ["finance", "economy"]
+    },
+    {
+      "id": "bc_003",
+      "input": {
+        "title": "New React 19 features announced at React Conf",
+        "summary": "React team unveiled new concurrent features and server components improvements.",
+        "source": "react.dev"
+      },
+      "expected": {
+        "board_type": "tech"
+      },
+      "tags": ["frontend", "react"]
+    },
+    {
+      "id": "bc_004",
+      "input": {
+        "title": "Apple reports record Q4 earnings",
+        "summary": "Apple exceeded analyst expectations with strong iPhone and services revenue.",
+        "source": "apple.com"
+      },
+      "expected": {
+        "board_type": "news"
+      },
+      "tags": ["business", "earnings"]
+    },
+    {
+      "id": "bc_005",
+      "input": {
+        "title": "Kubernetes 1.30 introduces new scheduling features",
+        "summary": "The latest Kubernetes release adds improved pod scheduling and resource management.",
+        "source": "kubernetes.io"
+      },
+      "expected": {
+        "board_type": "tech"
+      },
+      "tags": ["devops", "kubernetes"]
+    },
+    {
+      "id": "bc_006",
+      "input": {
+        "title": "GitHub Copilot adds new code review features",
+        "summary": "GitHub announced AI-powered code review capabilities for Copilot Enterprise users.",
+        "source": "github.blog"
+      },
+      "expected": {
+        "board_type": "tech"
+      },
+      "tags": ["ai", "devtools"]
+    },
+    {
+      "id": "bc_007",
+      "input": {
+        "title": "EU passes new AI regulation framework",
+        "summary": "European Union approved comprehensive AI Act with strict requirements for high-risk systems.",
+        "source": "europa.eu"
+      },
+      "expected": {
+        "board_type": "news"
+      },
+      "tags": ["regulation", "ai"]
+    },
+    {
+      "id": "bc_008",
+      "input": {
+        "title": "Rust 2.0 roadmap announced",
+        "summary": "Rust team shared plans for major language improvements and async ecosystem enhancements.",
+        "source": "rust-lang.org"
+      },
+      "expected": {
+        "board_type": "tech"
+      },
+      "tags": ["programming", "rust"]
+    }
+  ]
+}

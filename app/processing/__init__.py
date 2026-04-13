@@ -32,6 +32,11 @@ from app.processing.pipeline import (
     process_raw_items,
     process_single_item,
 )
+from app.processing.enrichment_pipeline import (
+    EnrichmentPipeline,
+    EnrichmentResult,
+    get_enrichment_pipeline,
+)
 
 __all__ = [
     "CompositeDedupStrategy",
@@ -40,6 +45,8 @@ __all__ = [
     "DedupResult",
     "DedupStrategy",
     "Deduplicator",
+    "EnrichmentPipeline",
+    "EnrichmentResult",
     "PipelineResult",
     "ProcessingPipeline",
     "TextCleaner",
@@ -54,6 +61,7 @@ __all__ = [
     "default_text_cleaner",
     "default_title_cleaner",
     "filter_duplicates",
+    "get_enrichment_pipeline",
     "is_duplicate",
     "normalize_content",
     "process_raw_items",

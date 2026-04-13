@@ -1,0 +1,111 @@
+{
+  "name": "Topic Merge Evaluation",
+  "version": "1.0",
+  "evaluation_type": "topic_merge",
+  "metadata": {
+    "description": "Samples for topic merge precision/recall evaluation",
+    "created_at": "2024-01-01"
+  },
+  "samples": [
+    {
+      "id": "tm_001",
+      "input": {
+        "topic_a": {
+          "id": 1,
+          "title": "GPT-5 Release Announcement",
+          "items": ["OpenAI announces GPT-5", "GPT-5 features revealed"]
+        },
+        "topic_b": {
+          "id": 2,
+          "title": "OpenAI GPT-5 Launch",
+          "items": ["GPT-5 launched today", "New GPT model from OpenAI"]
+        }
+      },
+      "expected": {
+        "should_merge": true,
+        "reason": "Same event - GPT-5 release"
+      },
+      "tags": ["duplicate", "ai"]
+    },
+    {
+      "id": "tm_002",
+      "input": {
+        "topic_a": {
+          "id": 3,
+          "title": "React 19 Release",
+          "items": ["React 19 announced with new features"]
+        },
+        "topic_b": {
+          "id": 4,
+          "title": "Vue 4 Release",
+          "items": ["Vue 4 released with composition API improvements"]
+        }
+      },
+      "expected": {
+        "should_merge": false,
+        "reason": "Different frameworks"
+      },
+      "tags": ["distinct", "frontend"]
+    },
+    {
+      "id": "tm_003",
+      "input": {
+        "topic_a": {
+          "id": 5,
+          "title": "AWS re:Invent 2024",
+          "items": ["AWS announces new services at re:Invent"]
+        },
+        "topic_b": {
+          "id": 6,
+          "title": "Amazon Web Services Conference",
+          "items": ["re:Invent 2024 keynote highlights"]
+        }
+      },
+      "expected": {
+        "should_merge": true,
+        "reason": "Same conference event"
+      },
+      "tags": ["duplicate", "cloud"]
+    },
+    {
+      "id": "tm_004",
+      "input": {
+        "topic_a": {
+          "id": 7,
+          "title": "Python 3.13 Released",
+          "items": ["Python 3.13 brings performance improvements"]
+        },
+        "topic_b": {
+          "id": 8,
+          "title": "Python 3.12 Security Update",
+          "items": ["Critical security patch for Python 3.12"]
+        }
+      },
+      "expected": {
+        "should_merge": false,
+        "reason": "Different Python versions"
+      },
+      "tags": ["distinct", "python"]
+    },
+    {
+      "id": "tm_005",
+      "input": {
+        "topic_a": {
+          "id": 9,
+          "title": "Microsoft Build 2024 Announcements",
+          "items": ["Copilot updates at Build", "Azure AI services expanded"]
+        },
+        "topic_b": {
+          "id": 10,
+          "title": "Build Conference AI News",
+          "items": ["Microsoft reveals AI roadmap at Build 2024"]
+        }
+      },
+      "expected": {
+        "should_merge": true,
+        "reason": "Same conference"
+      },
+      "tags": ["duplicate", "microsoft"]
+    }
+  ]
+}
