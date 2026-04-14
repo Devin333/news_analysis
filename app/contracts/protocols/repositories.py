@@ -1,10 +1,13 @@
 """Repository protocol definitions."""
 
+from datetime import datetime
 from typing import Protocol
 
 from app.contracts.dto.normalized_item import NormalizedItemDTO
 from app.contracts.dto.raw_item import RawItemDTO
+from app.contracts.dto.report import ReportCreateDTO, ReportDTO
 from app.contracts.dto.source import SourceCreate, SourceRead, SourceUpdate
+from app.contracts.dto.topic import TopicReadDTO
 
 
 class SourceRepositoryProtocol(Protocol):
@@ -84,4 +87,57 @@ class NormalizedItemRepositoryProtocol(Protocol):
         self, *, board_type: str | None = None, limit: int = 100
     ) -> list[NormalizedItemDTO]:
         """Search candidate items for topic clustering."""
+        ...
+
+
+class TopicRepositoryProtocol(Protocol):
+    """Protocol for topic repository reads used by report generation."""
+
+    async def list_recent(self, *, limit: int = 100) -> list[TopicReadDTO]:
+        """List recent topics."""
+        ...
+
+
+class PersistedModelProtocol(Protocol):
+    """Protocol for persisted models returned by repositories."""
+
+    id: int
+
+
+class ReportRepositoryProtocol(Protocol):
+    """Protocol for report repository operations."""
+
+    async def create(self, data: ReportCreateDTO) -> PersistedModelProtocol:
+        """Create a report."""
+        ...
+
+    async def get_by_id(self, report_id: int) -> ReportDTO | None:
+        """Get report by ID."""
+        ...
+
+    async def get_daily_by_date(self, date: datetime) -> ReportDTO | None:
+        """Get a daily report for a given date."""
+        ...
+
+    async def get_weekly_by_key(self, week_key: str) -> ReportDTO | None:
+        """Get a weekly report by its week key."""
+        ...
+
+    async def list_recent(
+        self,
+        *,
+        report_type: str | None = None,
+        limit: int = 20,
+    ) -> list[ReportDTO]:
+        """List recent reports."""
+        ...
+
+    async def update_status(
+        self,
+        report_id: int,
+        status: str,
+        *,
+        review_status: str | None = None,
+    ) -> PersistedModelProtocol | None:
+        """Update report status."""
         ...

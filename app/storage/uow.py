@@ -10,6 +10,7 @@ from app.source_management.repository import SourceRepository
 from app.storage.db.session import SessionFactory
 from app.storage.repositories.normalized_item_repository import NormalizedItemRepository
 from app.storage.repositories.raw_item_repository import RawItemRepository
+from app.storage.repositories.report_repository import ReportRepository
 from app.storage.repositories.topic_repository import TopicRepository
 
 
@@ -22,6 +23,7 @@ class UnitOfWork:
         self.raw_items: RawItemRepository | None = None
         self.normalized_items: NormalizedItemRepository | None = None
         self.topics: TopicRepository | None = None
+        self.reports: ReportRepository | None = None
         # Memory repositories
         self.topic_memories: TopicMemoryRepository | None = None
         self.entity_memories: EntityMemoryRepository | None = None
@@ -34,6 +36,7 @@ class UnitOfWork:
         self.raw_items = RawItemRepository(self._session)
         self.normalized_items = NormalizedItemRepository(self._session)
         self.topics = TopicRepository(self._session)
+        self.reports = ReportRepository(self._session)
         # Memory repositories
         self.topic_memories = TopicMemoryRepository(self._session)
         self.entity_memories = EntityMemoryRepository(self._session)

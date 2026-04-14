@@ -1,0 +1,35 @@
+# Python caches and local environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Generated outputs and local data
+output/
+outputs/
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Test and coverage artifacts
+.coverage
+coverage/
+htmlcov/
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Editor settings
+.vscode/

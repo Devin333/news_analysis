@@ -2,23 +2,23 @@
 
 import time
 from dataclasses import dataclass, field
-from typing import Any
 
 from app.bootstrap.logging import get_logger
 from app.common.enums import ContentType
 from app.contracts.dto.normalized_item import NormalizedItemDTO
 from app.contracts.dto.parse_result import ParseResult
 from app.contracts.dto.raw_item import RawItemDTO
-from app.parsers.base import BaseParser
 from app.parsers.html import HTMLParser
 from app.parsers.json_parser import JSONParser
 from app.parsers.manager import ParserManager
 from app.parsers.registry import ParserRegistry
 from app.parsers.rss import RSSParser
-from app.processing.dedup import Deduplicator, DedupResult, filter_duplicates
-from app.processing.normalizer import ContentNormalizer, normalize_content
+from app.processing.dedup import Deduplicator, DedupResult
+from app.processing.normalizer import ContentNormalizer
 
 logger = get_logger(__name__)
+
+ParsedRawItem = tuple[RawItemDTO, ParseResult]
 
 
 @dataclass
@@ -64,6 +64,7 @@ class ProcessingPipeline:
         self._parser_manager = ParserManager(self._parser_registry)
         self._normalizer = normalizer or ContentNormalizer()
         self._deduplicator = deduplicator or Deduplicator()
+        self._rss_parser = RSSParser()
 
     def _create_default_registry(self) -> ParserRegistry:
         """Create default parser registry with all built-in parsers."""
@@ -105,7 +106,7 @@ class ProcessingPipeline:
         logger.info(f"Starting pipeline for {len(raw_items)} items")
 
         # Stage 1: Parse
-        parsed_items: list[tuple[RawItemDTO, ParseResult]] = []
+        parsed_items: list[ParsedRawItem] = []
         for raw_item in raw_items:
             parse_result = self._parse_item(raw_item, content_type)
             if parse_result.success:
@@ -160,35 +161,58 @@ class ProcessingPipeline:
         content_type: ContentType,
     ) -> ParseResult:
         """Parse a single raw item with appropriate parser."""
-        # Determine best parser based on content
-        if raw_item.raw_json:
-            # If raw_json contains a "title" key it likely came from an RSS
-            # collector that preserved entry metadata.  Use the dedicated
-            # RSSParser so the title / author / tags are extracted properly.
-            if "title" in raw_item.raw_json:
-                rss_parser = RSSParser()
-                result = rss_parser.parse(raw_item)
-                if result.success:
-                    return result
+        rss_result = self._parse_rss_metadata(raw_item)
+        if rss_result is not None:
+            return rss_result
 
-            # Other JSON content - use JSON parser (e.g. GitHub / arXiv)
-            parser = self._parser_registry.get(ContentType.REPOSITORY)
-            if parser and parser.can_parse(raw_item):
-                return parser.parse(raw_item)
+        json_result = self._parse_with_registered_parser(raw_item, ContentType.REPOSITORY)
+        if json_result is not None:
+            return json_result
 
-        if raw_item.raw_html:
-            # HTML content - use HTML parser
-            parser = self._parser_registry.get(ContentType.ARTICLE)
-            if parser and parser.can_parse(raw_item):
-                result = parser.parse(raw_item)
-                # If HTML parser couldn't extract a title but raw_json has one,
-                # patch it in so downstream normalisation gets a usable title.
-                if result.success and not result.title and raw_item.raw_json:
-                    result.title = raw_item.raw_json.get("title", "")
-                return result
+        html_result = self._parse_html_content(raw_item)
+        if html_result is not None:
+            return html_result
 
         # Fallback to default parser
         return self._parser_manager.parse_item(raw_item, content_type)
+
+    def _parse_rss_metadata(self, raw_item: RawItemDTO) -> ParseResult | None:
+        """Parse JSON-backed RSS metadata when the collector preserved entry fields."""
+
+        if raw_item.raw_json is None or "title" not in raw_item.raw_json:
+            return None
+
+        result = self._rss_parser.parse(raw_item)
+        if result.success:
+            return result
+        return None
+
+    def _parse_with_registered_parser(
+        self,
+        raw_item: RawItemDTO,
+        parser_type: ContentType,
+    ) -> ParseResult | None:
+        """Parse an item with a registered parser when one matches the payload."""
+
+        parser = self._parser_registry.get(parser_type)
+        if parser is None or not parser.can_parse(raw_item):
+            return None
+        return parser.parse(raw_item)
+
+    def _parse_html_content(self, raw_item: RawItemDTO) -> ParseResult | None:
+        """Parse HTML content and preserve collector titles as a fallback."""
+
+        if raw_item.raw_html is None:
+            return None
+
+        result = self._parse_with_registered_parser(raw_item, ContentType.ARTICLE)
+        if result is None:
+            return None
+
+        if result.success and not result.title and raw_item.raw_json:
+            result.title = raw_item.raw_json.get("title", "")
+
+        return result
 
     def process_single(
         self,

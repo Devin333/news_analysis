@@ -4,7 +4,7 @@ Handles building daily and weekly reports with ranking-based selection.
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, NotRequired, Protocol, TypedDict
 
 from app.bootstrap.logging import get_logger
 from app.contracts.dto.ranking import RankingContextDTO
@@ -14,16 +14,39 @@ from app.contracts.dto.report import (
     ReportSectionDTO,
     ReportTopicSummaryDTO,
 )
+from app.contracts.protocols.repositories import (
+    ReportRepositoryProtocol,
+    TopicRepositoryProtocol,
+)
 
 if TYPE_CHECKING:
     from app.ranking.feature_provider import RankingFeatureProvider
     from app.ranking.service import RankingService
-    from app.ranking.strategies.report_selection import ReportSelectionStrategy
-    from app.storage.repositories.report_repository import ReportRepository
-    from app.storage.repositories.topic_repository import TopicRepository
-    from app.storage.uow import UnitOfWork
+    from app.contracts.dto.topic import TopicReadDTO
 
 logger = get_logger(__name__)
+
+
+class ReportTopicPayload(TypedDict):
+    """Typed topic payload used by report generation."""
+
+    id: int
+    title: str
+    summary: str | None
+    board_type: str
+    heat_score: float
+    trend_score: float
+    item_count: int
+    source_count: int
+    report_score: float
+    ranking_features: NotRequired[dict[str, object] | None]
+
+
+class ReportUnitOfWorkProtocol(Protocol):
+    """Minimal UoW surface needed by report generation services."""
+
+    topics: TopicRepositoryProtocol | None
+    reports: ReportRepositoryProtocol | None
 
 
 class ReportService:
@@ -38,7 +61,7 @@ class ReportService:
 
     def __init__(
         self,
-        uow: "UnitOfWork | None" = None,
+        uow: ReportUnitOfWorkProtocol | None = None,
         ranking_service: "RankingService | None" = None,
         feature_provider: "RankingFeatureProvider | None" = None,
     ) -> None:
@@ -107,9 +130,10 @@ class ReportService:
         )
 
         # Save to database
-        if self._uow and hasattr(self._uow, "reports"):
-            report = await self._uow.reports.create(create_dto)
-            return await self._uow.reports.get_by_id(report.id)
+        reports_repo = self._get_reports_repo()
+        if reports_repo is not None:
+            report = await reports_repo.create(create_dto)
+            return await reports_repo.get_by_id(report.id)
 
         # Return without persistence
         return ReportDTO(
@@ -183,9 +207,10 @@ class ReportService:
         )
 
         # Save to database
-        if self._uow and hasattr(self._uow, "reports"):
-            report = await self._uow.reports.create(create_dto)
-            return await self._uow.reports.get_by_id(report.id)
+        reports_repo = self._get_reports_repo()
+        if reports_repo is not None:
+            report = await reports_repo.create(create_dto)
+            return await reports_repo.get_by_id(report.id)
 
         return ReportDTO(
             report_type=create_dto.report_type,
@@ -204,7 +229,7 @@ class ReportService:
         window_days: int = 1,
         limit: int = 10,
         use_ranking: bool = True,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ReportTopicPayload]:
         """Select top topics for a report.
 
         Uses ranking service if available, otherwise falls back to simple scoring.
@@ -225,31 +250,34 @@ class ReportService:
         Returns:
             List of topic dicts with scores.
         """
-        if self._uow is None or not hasattr(self._uow, "topics"):
+        topics_repo = self._get_topics_repo()
+        if topics_repo is None:
             return []
 
         # Get recent topics
-        topics = await self._uow.topics.list_recent(limit=limit * 3)
+        topics = await topics_repo.list_recent(limit=limit * 3)
 
         # Try ranking service first
         if use_ranking and self._ranking_service and self._feature_provider:
             return await self._select_with_ranking(topics, window_days, limit)
 
         # Fallback to simple scoring
-        scored_topics = []
+        scored_topics: list[ReportTopicPayload] = []
         for topic in topics:
             score = self._calculate_report_score(topic, window_days)
-            scored_topics.append({
-                "id": topic.id,
-                "title": topic.title,
-                "summary": topic.summary,
-                "board_type": str(topic.board_type),
-                "heat_score": float(topic.heat_score),
-                "trend_score": float(topic.trend_score),
-                "item_count": topic.item_count,
-                "source_count": topic.source_count,
-                "report_score": score,
-            })
+            scored_topics.append(
+                {
+                    "id": topic.id,
+                    "title": topic.title,
+                    "summary": topic.summary,
+                    "board_type": str(topic.board_type),
+                    "heat_score": float(topic.heat_score),
+                    "trend_score": float(topic.trend_score),
+                    "item_count": topic.item_count,
+                    "source_count": topic.source_count,
+                    "report_score": score,
+                }
+            )
 
         # Sort by report score
         scored_topics.sort(key=lambda x: x["report_score"], reverse=True)
@@ -258,10 +286,10 @@ class ReportService:
 
     async def _select_with_ranking(
         self,
-        topics: list[Any],
+        topics: list["TopicReadDTO"],
         window_days: int,
         limit: int,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ReportTopicPayload]:
         """Select topics using ranking service.
 
         Args:
@@ -308,29 +336,31 @@ class ReportService:
 
         # Convert to dict format
         topic_map = {t.id: t for t in topics}
-        result = []
+        result: list[ReportTopicPayload] = []
         for rt in ranked_topics[:limit]:
             topic = topic_map.get(rt.topic_id)
             if topic:
-                result.append({
-                    "id": topic.id,
-                    "title": topic.title,
-                    "summary": topic.summary,
-                    "board_type": str(topic.board_type),
-                    "heat_score": float(topic.heat_score),
-                    "trend_score": float(topic.trend_score),
-                    "item_count": topic.item_count,
-                    "source_count": topic.source_count,
-                    "report_score": rt.score,
-                    "ranking_features": rt.features.model_dump() if rt.features else None,
-                })
+                result.append(
+                    {
+                        "id": topic.id,
+                        "title": topic.title,
+                        "summary": topic.summary,
+                        "board_type": str(topic.board_type),
+                        "heat_score": float(topic.heat_score),
+                        "trend_score": float(topic.trend_score),
+                        "item_count": topic.item_count,
+                        "source_count": topic.source_count,
+                        "report_score": rt.score,
+                        "ranking_features": rt.features.model_dump() if rt.features else None,
+                    }
+                )
 
         return result
 
     def _calculate_report_score(
         self,
-        topic: Any,
-        window_days: int,
+        topic: "TopicReadDTO",
+        _window_days: int,
     ) -> float:
         """Calculate report inclusion score for a topic."""
         score = 0.0
@@ -353,7 +383,7 @@ class ReportService:
 
     async def _build_daily_sections(
         self,
-        topics: list[dict[str, Any]],
+        topics: list[ReportTopicPayload],
         include_trends: bool,
     ) -> list[ReportSectionDTO]:
         """Build sections for daily report."""
@@ -421,7 +451,7 @@ class ReportService:
 
     async def _build_weekly_sections(
         self,
-        topics: list[dict[str, Any]],
+        topics: list[ReportTopicPayload],
     ) -> list[ReportSectionDTO]:
         """Build sections for weekly report."""
         sections = []
@@ -466,7 +496,7 @@ class ReportService:
             ))
 
         # By category (group by board_type)
-        by_board: dict[str, list[dict]] = {}
+        by_board: dict[str, list[ReportTopicPayload]] = {}
         for t in topics:
             board = t.get("board_type", "general")
             if board not in by_board:
@@ -494,7 +524,7 @@ class ReportService:
 
     async def _generate_executive_summary(
         self,
-        topics: list[dict[str, Any]],
+        topics: list[ReportTopicPayload],
         report_type: str,
     ) -> str:
         """Generate executive summary for report.
@@ -520,14 +550,16 @@ class ReportService:
 
     async def get_daily_report(self, date: datetime) -> ReportDTO | None:
         """Get daily report by date."""
-        if self._uow and hasattr(self._uow, "reports"):
-            return await self._uow.reports.get_daily_by_date(date)
+        reports_repo = self._get_reports_repo()
+        if reports_repo is not None:
+            return await reports_repo.get_daily_by_date(date)
         return None
 
     async def get_weekly_report(self, week_key: str) -> ReportDTO | None:
         """Get weekly report by week key."""
-        if self._uow and hasattr(self._uow, "reports"):
-            return await self._uow.reports.get_weekly_by_key(week_key)
+        reports_repo = self._get_reports_repo()
+        if reports_repo is not None:
+            return await reports_repo.get_weekly_by_key(week_key)
         return None
 
     async def list_recent_reports(
@@ -537,8 +569,9 @@ class ReportService:
         limit: int = 20,
     ) -> list[ReportDTO]:
         """List recent reports."""
-        if self._uow and hasattr(self._uow, "reports"):
-            return await self._uow.reports.list_recent(
+        reports_repo = self._get_reports_repo()
+        if reports_repo is not None:
+            return await reports_repo.list_recent(
                 report_type=report_type,
                 limit=limit,
             )
@@ -546,7 +579,18 @@ class ReportService:
 
     async def publish_report(self, report_id: int) -> bool:
         """Publish a report."""
-        if self._uow and hasattr(self._uow, "reports"):
-            result = await self._uow.reports.update_status(report_id, "published")
+        reports_repo = self._get_reports_repo()
+        if reports_repo is not None:
+            result = await reports_repo.update_status(report_id, "published")
             return result is not None
         return False
+
+    def _get_topics_repo(self) -> TopicRepositoryProtocol | None:
+        if self._uow is None:
+            return None
+        return self._uow.topics
+
+    def _get_reports_repo(self) -> ReportRepositoryProtocol | None:
+        if self._uow is None:
+            return None
+        return self._uow.reports
