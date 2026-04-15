@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.agent_runtime.tools.base import BaseTool, ToolResult
+from app.agent_runtime.tools.base import BaseTool, ToolResult, ToolRegistry
 from app.bootstrap.logging import get_logger
 
 logger = get_logger(__name__)
@@ -102,9 +102,7 @@ class RetrieveTopicTimelineTool(BaseTool):
                 for e in timeline
             ]
 
-            return ToolResult(
-                success=True,
-                data={
+            return ToolResult.ok({
                     "topic_id": params.topic_id,
                     "event_count": len(events),
                     "events": events,
@@ -158,9 +156,7 @@ class RetrieveTopicSnapshotsTool(BaseTool):
                 for s in snapshots
             ]
 
-            return ToolResult(
-                success=True,
-                data={
+            return ToolResult.ok({
                     "topic_id": params.topic_id,
                     "snapshot_count": len(snapshot_data),
                     "snapshots": snapshot_data,
@@ -198,9 +194,7 @@ class RetrieveRelatedTopicsTool(BaseTool):
                 limit=params.limit,
             )
 
-            return ToolResult(
-                success=True,
-                data={
+            return ToolResult.ok({
                     "topic_id": params.topic_id,
                     "related_count": len(related_ids),
                     "related_topic_ids": related_ids,
@@ -244,9 +238,7 @@ class RetrieveEntityMemoriesTool(BaseTool):
                         "milestones": memory.milestones,
                     })
 
-            return ToolResult(
-                success=True,
-                data={
+            return ToolResult.ok({
                     "entity_count": len(memories),
                     "memories": memories,
                 },
@@ -298,9 +290,7 @@ class RetrieveHistoricalJudgementsTool(BaseTool):
                 for j in judgements
             ]
 
-            return ToolResult(
-                success=True,
-                data={
+            return ToolResult.ok({
                     "topic_id": params.topic_id,
                     "judgement_count": len(judgement_data),
                     "judgements": judgement_data,
